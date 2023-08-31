@@ -9,6 +9,8 @@ namespace WebApiEntityFramework.Controllers
     /*****************
      * TODO - 
      * 1. put ef operations behind an interface
+     * 2. Add a few employees at startup
+     * 3. Add logs
      * 2. Ensure that no error escapes web api, so add a global error handler
      * 3. Provide a generic message for each error scenario
      * 4. Add unit tests
@@ -32,7 +34,7 @@ namespace WebApiEntityFramework.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        [ProducesResponseType(typeof(EmployeeDto), 200)]
+        [ProducesResponseType(typeof(EmployeeResponseDto), 200)]
         [ProducesResponseType(500)]
         public IActionResult GetEmployees()
         {
@@ -46,12 +48,12 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(EmployeeDto), 200)]
+        [ProducesResponseType(typeof(EmployeeResponseDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public IActionResult GetEmployeeById(string employeeId)
+        public IActionResult GetEmployeeById(string id)
         {
-            var employee = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(employeeId));
+            var employee = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
             if (employee == null)
             {
                 return NotFound();
@@ -67,20 +69,23 @@ namespace WebApiEntityFramework.Controllers
         /// <returns></returns>
         [HttpPost]
         [ProducesResponseType(201)]
-        [ProducesResponseType( 400)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public IActionResult AddEmployee(EmployeeAddDto employee)
+        public IActionResult AddEmployee(EmployeeRequestDto employeeRequest)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequestErrorMessages();
             }
 
+            Employee employee = employeeRequest;
             employee.EmployeeId = Guid.NewGuid().ToString();
             _dbcontext.Employees.Add(employee);
             _dbcontext.SaveChanges();
 
-            return CreatedAtAction(nameof(GetEmployeeById), new { id = employee.EmployeeId }, employee);
+            EmployeeResponseDto employeeResponse = employee;
+
+            return CreatedAtAction(nameof(GetEmployeeById), new { id = employeeResponse.EmployeeId }, employeeResponse);
         }
 
 
@@ -92,19 +97,14 @@ namespace WebApiEntityFramework.Controllers
         /// <returns></returns>
         [HttpPut("{id}")]
         [ProducesResponseType(204)]
-        [ProducesResponseType( 400)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public IActionResult Updateemployee(string id, EmployeeDto employee)
+        public IActionResult Updateemployee(string id, EmployeeRequestDto employeeRequest)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequestErrorMessages();
-            }
-
-            if (id != employee.EmployeeId)
-            {
-                return BadRequest("The employee id in url does not match the employee id in body of request.");
             }
 
             var employeeToUpdate = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
@@ -114,13 +114,13 @@ namespace WebApiEntityFramework.Controllers
                 return NotFound();
             }
 
-            employeeToUpdate.FirstName = employee.FirstName;
-            employeeToUpdate.LastName = employee.LastName;
-            employeeToUpdate.EmailAddress = employee.EmailAddress;
-            employeeToUpdate.Age = employee.Age;
-            
+            employeeToUpdate.FirstName = employeeRequest.FirstName;
+            employeeToUpdate.LastName = employeeRequest.LastName;
+            employeeToUpdate.Age = employeeRequest.Age;
+            employeeToUpdate.EmailAddress = employeeRequest.EmailAddress;
+
             _dbcontext.SaveChanges();
-            
+
             return NoContent();
         }
 

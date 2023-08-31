@@ -3,13 +3,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebApiEntityFramework.Models
 {
-    public class EmployeeDto : EmployeeBaseDto
+    public class EmployeeResponseDto
     {
         public string EmployeeId { get; set; }
 
-        public static implicit operator EmployeeDto(Employee employee)
+        public string FirstName { get; set; }
+
+
+        public string LastName { get; set; }
+
+        public int Age { get; set; }
+
+        public string EmailAddress { get; set; }
+
+        public static implicit operator EmployeeResponseDto(Employee employee)
         {
-            return new EmployeeDto
+            return new EmployeeResponseDto
             {
                 EmployeeId = employee.EmployeeId,
                 FirstName = employee.FirstName,
@@ -19,7 +28,7 @@ namespace WebApiEntityFramework.Models
             };
         }
 
-        public static implicit operator Employee(EmployeeDto employeeDto)
+        public static implicit operator Employee(EmployeeResponseDto employeeDto)
         {
             return new Employee
             {
