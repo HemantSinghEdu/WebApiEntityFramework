@@ -82,7 +82,7 @@ namespace WebApiEntityFramework.Controllers
             employeeToUpdate.FirstName = employee.FirstName;
             employeeToUpdate.LastName = employee.LastName;
             employeeToUpdate.EmailAddress = employee.EmailAddress;
-            employeeToUpdate.DateOfBirth = employee.DateOfBirth;
+            employeeToUpdate.Age = employee.Age;
 
             return NoContent();
         }
