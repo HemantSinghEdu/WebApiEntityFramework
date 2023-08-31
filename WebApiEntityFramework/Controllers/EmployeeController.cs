@@ -21,7 +21,7 @@ namespace WebApiEntityFramework.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<IEnumerable<Employee>> GetEmployees()
+        public IActionResult GetEmployees()
         {
             return Ok(_employees);
         }
@@ -33,7 +33,7 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public ActionResult<Employee> GetEmployee(string employeeId)
+        public IActionResult GetEmployee(string employeeId)
         {
             var employee = _employees.FirstOrDefault(a => a.EmployeeId.Equals(employeeId));
             if (employee == null)
@@ -50,8 +50,13 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPost]
-        public ActionResult<Employee> AddEmployee(Employee employee)
+        public IActionResult AddEmployee(Employee employee)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequestErrorMessages();
+            }
+
             employee.EmployeeId = Guid.NewGuid().ToString();
             _employees.Add(employee);
             return CreatedAtAction(nameof(GetEmployee), new { id = employee.EmployeeId }, employee);
@@ -65,11 +70,16 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPut("{id}")]
-        public ActionResult<Employee> Updateemployee(string id, Employee employee)
+        public IActionResult Updateemployee(string id, Employee employee)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequestErrorMessages();
+            }
+
             if (id != employee.EmployeeId)
             {
-                return BadRequest();
+                return BadRequest("The employee id in url does not match the employee id in body of request.");
             }
 
             var employeeToUpdate = _employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
@@ -93,7 +103,7 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpDelete("{id}")]
-        public ActionResult Deleteemployee(string id)
+        public IActionResult Deleteemployee(string id)
         {
             var employeeToDelete = _employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
 
@@ -105,6 +115,12 @@ namespace WebApiEntityFramework.Controllers
             _employees.Remove(employeeToDelete);
 
             return NoContent();
+        }
+
+        private IActionResult BadRequestErrorMessages()
+        {
+            var errMsgs = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+            return BadRequest(errMsgs);
         }
     }
 }
