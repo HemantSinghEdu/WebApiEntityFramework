@@ -1,9 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Net;
 using WebApiEntityFramework.DatabaseContext;
 using WebApiEntityFramework.Models;
 
 namespace WebApiEntityFramework.Controllers
 {
+    /*****************
+     * TODO - 
+     * 1. put ef operations behind an interface
+     * 2. Ensure that no error escapes web api, so add a global error handler
+     * 3. Provide a generic message for each error scenario
+     * 4. Add unit tests
+     * 5. Ensure that unique key constraints are enforced
+     */
     [ApiController]
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
@@ -22,6 +32,8 @@ namespace WebApiEntityFramework.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
+        [ProducesResponseType(typeof(EmployeeDto), 200)]
+        [ProducesResponseType(500)]
         public IActionResult GetEmployees()
         {
             return Ok(_dbcontext.Employees.ToList());
@@ -34,6 +46,9 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(EmployeeDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public IActionResult GetEmployeeById(string employeeId)
         {
             var employee = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(employeeId));
@@ -51,6 +66,9 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPost]
+        [ProducesResponseType(201)]
+        [ProducesResponseType( 400)]
+        [ProducesResponseType(500)]
         public IActionResult AddEmployee(EmployeeAddDto employee)
         {
             if (!ModelState.IsValid)
@@ -73,6 +91,10 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPut("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType( 400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public IActionResult Updateemployee(string id, EmployeeDto employee)
         {
             if (!ModelState.IsValid)
@@ -108,6 +130,10 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public IActionResult Deleteemployee(string id)
         {
             var employeeToDelete = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
