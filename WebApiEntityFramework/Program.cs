@@ -1,3 +1,5 @@
+using WebApiEntityFramework.DatabaseContext;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -9,6 +11,8 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.EnableAnnotations();
 });
+
+builder.Services.AddDbContext<InMemoryDbContext>();
 
 var app = builder.Build();
 

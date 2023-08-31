@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApiEntityFramework.DatabaseContext;
 using WebApiEntityFramework.Models;
 
 namespace WebApiEntityFramework.Controllers
@@ -7,13 +8,13 @@ namespace WebApiEntityFramework.Controllers
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
     {
-        private static List<Employee> _employees = new List<Employee>();
-
+        private readonly InMemoryDbContext _dbcontext;
         private readonly ILogger<EmployeeController> _logger;
 
-        public EmployeeController(ILogger<EmployeeController> logger)
+        public EmployeeController(ILogger<EmployeeController> logger, InMemoryDbContext dbContext)
         {
             _logger = logger;
+            _dbcontext = dbContext;
         }
 
         /// <summary>
@@ -23,7 +24,7 @@ namespace WebApiEntityFramework.Controllers
         [HttpGet]
         public IActionResult GetEmployees()
         {
-            return Ok(_employees);
+            return Ok(_dbcontext.Employees.ToList());
         }
 
 
@@ -33,9 +34,9 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        public IActionResult GetEmployee(string employeeId)
+        public IActionResult GetEmployeeById(string employeeId)
         {
-            var employee = _employees.FirstOrDefault(a => a.EmployeeId.Equals(employeeId));
+            var employee = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(employeeId));
             if (employee == null)
             {
                 return NotFound();
@@ -50,7 +51,7 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult AddEmployee(Employee employee)
+        public IActionResult AddEmployee(EmployeeAddDto employee)
         {
             if (!ModelState.IsValid)
             {
@@ -58,8 +59,10 @@ namespace WebApiEntityFramework.Controllers
             }
 
             employee.EmployeeId = Guid.NewGuid().ToString();
-            _employees.Add(employee);
-            return CreatedAtAction(nameof(GetEmployee), new { id = employee.EmployeeId }, employee);
+            _dbcontext.Employees.Add(employee);
+            _dbcontext.SaveChanges();
+
+            return CreatedAtAction(nameof(GetEmployeeById), new { id = employee.EmployeeId }, employee);
         }
 
 
@@ -70,7 +73,7 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         [HttpPut("{id}")]
-        public IActionResult Updateemployee(string id, Employee employee)
+        public IActionResult Updateemployee(string id, EmployeeDto employee)
         {
             if (!ModelState.IsValid)
             {
@@ -82,7 +85,7 @@ namespace WebApiEntityFramework.Controllers
                 return BadRequest("The employee id in url does not match the employee id in body of request.");
             }
 
-            var employeeToUpdate = _employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
+            var employeeToUpdate = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
 
             if (employeeToUpdate == null)
             {
@@ -93,7 +96,9 @@ namespace WebApiEntityFramework.Controllers
             employeeToUpdate.LastName = employee.LastName;
             employeeToUpdate.EmailAddress = employee.EmailAddress;
             employeeToUpdate.Age = employee.Age;
-
+            
+            _dbcontext.SaveChanges();
+            
             return NoContent();
         }
 
@@ -105,14 +110,15 @@ namespace WebApiEntityFramework.Controllers
         [HttpDelete("{id}")]
         public IActionResult Deleteemployee(string id)
         {
-            var employeeToDelete = _employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
+            var employeeToDelete = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
 
             if (employeeToDelete == null)
             {
                 return NotFound();
             }
 
-            _employees.Remove(employeeToDelete);
+            _dbcontext.Employees.Remove(employeeToDelete);
+            _dbcontext.SaveChanges();
 
             return NoContent();
         }
