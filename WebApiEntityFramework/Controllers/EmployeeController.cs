@@ -64,8 +64,9 @@ namespace WebApiEntityFramework.Controllers
         [ProducesResponseType(typeof(EmployeeResponseDto), 200)]
         public async Task<IActionResult> GetEmployeeByName(string name)
         {
+            name = name.ToLower();
             var employees = await _employeeRepository.GetAllAsync();
-            var matchingEmployees = employees.Where(emp => emp.FirstName == name || emp.LastName == name)
+            var matchingEmployees = employees.Where(emp => emp.FirstName.ToLower() == name || emp.LastName.ToLower() == name)
                 .ToList();
             return Ok(matchingEmployees);
         }
