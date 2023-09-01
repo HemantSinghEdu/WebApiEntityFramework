@@ -1,18 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
+using WebApiEntityFramework.Contracts.Repositories;
 using WebApiEntityFramework.DatabaseContext;
+using WebApiEntityFramework.Implementations.Repositories;
 using WebApiEntityFramework.Models;
 
 namespace WebApiEntityFramework.Controllers
 {
     /*****************
      * TODO - 
-     * 1. put ef operations behind an interface
-     * 2. Add a few employees at startup
-     * 3. Add logs
-     * 2. Ensure that no error escapes web api, so add a global error handler
-     * 3. Provide a generic message for each error scenario
      * 4. Add unit tests
      * 5. Ensure that unique key constraints are enforced
      */
@@ -20,13 +17,13 @@ namespace WebApiEntityFramework.Controllers
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
     {
-        private readonly InMemoryDbContext _dbcontext;
+        private readonly IEmployeeRepository _employeeRepository;
         private readonly ILogger<EmployeeController> _logger;
 
-        public EmployeeController(ILogger<EmployeeController> logger, InMemoryDbContext dbContext)
+        public EmployeeController(ILogger<EmployeeController> logger, IEmployeeRepository employeeRepository)
         {
             _logger = logger;
-            _dbcontext = dbContext;
+            _employeeRepository = employeeRepository;
         }
 
         /// <summary>
@@ -36,9 +33,10 @@ namespace WebApiEntityFramework.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(EmployeeResponseDto), 200)]
         [ProducesResponseType(500)]
-        public IActionResult GetEmployees()
+        public async Task<IActionResult> GetEmployees()
         {
-            return Ok(_dbcontext.Employees.ToList());
+            var employees = await _employeeRepository.GetAllAsync();
+            return Ok(employees);
         }
 
 
@@ -51,11 +49,12 @@ namespace WebApiEntityFramework.Controllers
         [ProducesResponseType(typeof(EmployeeResponseDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public IActionResult GetEmployeeById(string id)
+        public async Task<IActionResult> GetEmployeeById(string id)
         {
-            var employee = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
+            var employee = await _employeeRepository.GetById(id);
             if (employee == null)
             {
+                _logger.LogInformation("Unable to find Employee with requested employee id", id);
                 return NotFound();
             }
 
@@ -71,7 +70,7 @@ namespace WebApiEntityFramework.Controllers
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public IActionResult AddEmployee(EmployeeRequestDto employeeRequest)
+        public async Task<IActionResult> AddEmployee(EmployeeRequestDto employeeRequest)
         {
             if (!ModelState.IsValid)
             {
@@ -80,11 +79,10 @@ namespace WebApiEntityFramework.Controllers
 
             Employee employee = employeeRequest;
             employee.EmployeeId = Guid.NewGuid().ToString();
-            _dbcontext.Employees.Add(employee);
-            _dbcontext.SaveChanges();
+            await _employeeRepository.CreateAsync(employee);
 
             EmployeeResponseDto employeeResponse = employee;
-
+            _logger.LogInformation("New Employee added with employee id", employee.EmployeeId);
             return CreatedAtAction(nameof(GetEmployeeById), new { id = employeeResponse.EmployeeId }, employeeResponse);
         }
 
@@ -100,17 +98,18 @@ namespace WebApiEntityFramework.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public IActionResult Updateemployee(string id, EmployeeRequestDto employeeRequest)
+        public async Task<IActionResult> UpdateEmployee(string id, EmployeeRequestDto employeeRequest)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequestErrorMessages();
             }
 
-            var employeeToUpdate = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
+            var employeeToUpdate = await _employeeRepository.GetById(id);
 
             if (employeeToUpdate == null)
             {
+                _logger.LogInformation("UpdateEmployee: Unable to find Employee with employee id", id);
                 return NotFound();
             }
 
@@ -119,7 +118,7 @@ namespace WebApiEntityFramework.Controllers
             employeeToUpdate.Age = employeeRequest.Age;
             employeeToUpdate.EmailAddress = employeeRequest.EmailAddress;
 
-            _dbcontext.SaveChanges();
+            await _employeeRepository.UpdateAsync(employeeToUpdate);
 
             return NoContent();
         }
@@ -134,17 +133,17 @@ namespace WebApiEntityFramework.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public IActionResult Deleteemployee(string id)
+        public async Task<IActionResult> Deleteemployee(string id)
         {
-            var employeeToDelete = _dbcontext.Employees.FirstOrDefault(a => a.EmployeeId.Equals(id));
+            var employeeToDelete = await _employeeRepository.GetById(id);
 
             if (employeeToDelete == null)
             {
+                _logger.LogInformation("DeleteEmployee: Unable to find Employee with employee id", id);
                 return NotFound();
             }
 
-            _dbcontext.Employees.Remove(employeeToDelete);
-            _dbcontext.SaveChanges();
+            _employeeRepository.DeleteAsync(employeeToDelete);
 
             return NoContent();
         }
@@ -152,6 +151,7 @@ namespace WebApiEntityFramework.Controllers
         private IActionResult BadRequestErrorMessages()
         {
             var errMsgs = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
+            _logger.LogInformation("Bad request received", errMsgs);
             return BadRequest(errMsgs);
         }
     }
