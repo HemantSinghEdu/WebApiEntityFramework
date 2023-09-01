@@ -6,20 +6,7 @@ namespace WebApiEntityFramework.Data
 {
     public static class SeedData
     {
-
-        public static async Task Initialize(IServiceProvider serviceProvider)
-        {
-            var employeeRespository = serviceProvider.GetRequiredService<IEmployeeRepository>();
-
-            // Look for existing records
-            var employeeList = await employeeRespository.GetAllAsync();
-            if (employeeList.Any())
-            {
-                return;   // DB has been seeded
-            }
-
-            //If no records exist yet, then seed the database
-            var initialEmployess = new List<Employee>
+        public static List<Employee> InitialEmployees = new List<Employee>
             {
                 new Employee
                 {
@@ -58,7 +45,20 @@ namespace WebApiEntityFramework.Data
                 }
             };
 
-            await employeeRespository.CreateAsync(initialEmployess);
+
+        public static async Task Initialize(IServiceProvider serviceProvider)
+        {
+            var employeeRespository = serviceProvider.GetRequiredService<IEmployeeRepository>();
+
+            // Look for existing records
+            var employeeList = await employeeRespository.GetAllAsync();
+            if (employeeList.Any())
+            {
+                return;   // DB has been seeded
+            }
+
+            //If no records exist yet, then seed the database
+            await employeeRespository.CreateAsync(InitialEmployees);
         }
     }
 }

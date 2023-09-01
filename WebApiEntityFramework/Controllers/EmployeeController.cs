@@ -8,10 +8,7 @@ using WebApiEntityFramework.Models;
 
 namespace WebApiEntityFramework.Controllers
 {
-    /*****************
-     * TODO - 
-     * 4. Add unit tests
-     */
+
     [ApiController]
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
@@ -101,12 +98,12 @@ namespace WebApiEntityFramework.Controllers
         /// <param name="employee"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        private async Task<bool> IsRecordUnique(Employee employee)
+        private async Task<bool> IsRecordUnique(Employee employee, string id = "")
         {
             var existingEmployees = await _employeeRepository.GetAllAsync();
-            var isAlreadyPresent = existingEmployees.Any(emp => emp.FirstName==employee.FirstName 
-                                    && emp.LastName == employee.LastName 
-                                    && emp.EmailAddress==employee.EmailAddress);
+            var isAlreadyPresent = existingEmployees.Any(emp => emp.FirstName == employee.FirstName
+                                    && emp.LastName == employee.LastName
+                                    && emp.EmailAddress == employee.EmailAddress && emp.EmployeeId != id);
             return !isAlreadyPresent;
         }
 
@@ -137,14 +134,16 @@ namespace WebApiEntityFramework.Controllers
                 return NotFound();
             }
 
-            employeeToUpdate.FirstName = employeeRequest.FirstName;
-            employeeToUpdate.LastName = employeeRequest.LastName;
-            employeeToUpdate.Age = employeeRequest.Age;
-            employeeToUpdate.EmailAddress = employeeRequest.EmailAddress;
+            var isUnique = await IsRecordUnique(employeeRequest, id);
 
-            var isUnique = await IsRecordUnique(employeeToUpdate);
             if (isUnique)
             {
+
+                employeeToUpdate.FirstName = employeeRequest.FirstName;
+                employeeToUpdate.LastName = employeeRequest.LastName;
+                employeeToUpdate.Age = employeeRequest.Age;
+                employeeToUpdate.EmailAddress = employeeRequest.EmailAddress;
+
                 await _employeeRepository.UpdateAsync(employeeToUpdate);
             }
             else
