@@ -11,7 +11,6 @@ namespace WebApiEntityFramework.Controllers
     /*****************
      * TODO - 
      * 4. Add unit tests
-     * 5. Ensure that unique key constraints are enforced
      */
     [ApiController]
     [Route("[controller]")]
@@ -79,11 +78,36 @@ namespace WebApiEntityFramework.Controllers
 
             Employee employee = employeeRequest;
             employee.EmployeeId = Guid.NewGuid().ToString();
-            await _employeeRepository.CreateAsync(employee);
+            var isUnique = await IsRecordUnique(employee);
+            if (isUnique)
+            {
+                await _employeeRepository.CreateAsync(employee);
 
-            EmployeeResponseDto employeeResponse = employee;
-            _logger.LogInformation("New Employee added with employee id", employee.EmployeeId);
-            return CreatedAtAction(nameof(GetEmployeeById), new { id = employeeResponse.EmployeeId }, employeeResponse);
+                EmployeeResponseDto employeeResponse = employee;
+                _logger.LogInformation("New Employee added with employee id", employee.EmployeeId);
+                return CreatedAtAction(nameof(GetEmployeeById), new { id = employeeResponse.EmployeeId }, employeeResponse);
+            }
+            else
+            {
+                return Conflict("Employee with same details already exists");
+            }
+        }
+
+        /// <summary>
+        /// This is a workaround function to check for uniqueness
+        /// This is being used because adding constraints in Entity Framework 
+        /// doesn't work for In-Memory Database, which is what we are using here
+        /// </summary>
+        /// <param name="employee"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private async Task<bool> IsRecordUnique(Employee employee)
+        {
+            var existingEmployees = await _employeeRepository.GetAllAsync();
+            var isAlreadyPresent = existingEmployees.Any(emp => emp.FirstName==employee.FirstName 
+                                    && emp.LastName == employee.LastName 
+                                    && emp.EmailAddress==employee.EmailAddress);
+            return !isAlreadyPresent;
         }
 
 
@@ -118,7 +142,15 @@ namespace WebApiEntityFramework.Controllers
             employeeToUpdate.Age = employeeRequest.Age;
             employeeToUpdate.EmailAddress = employeeRequest.EmailAddress;
 
-            await _employeeRepository.UpdateAsync(employeeToUpdate);
+            var isUnique = await IsRecordUnique(employeeToUpdate);
+            if (isUnique)
+            {
+                await _employeeRepository.UpdateAsync(employeeToUpdate);
+            }
+            else
+            {
+                return Conflict("Employee with same details already exists");
+            }
 
             return NoContent();
         }
