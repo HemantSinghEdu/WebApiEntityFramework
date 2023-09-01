@@ -50,6 +50,17 @@ namespace WebApiEntityFramework.Tests
 
 
         [Fact]
+        public async Task GetByName_ReturnsValues()
+        {
+            var client = _factory.CreateClient();
+            var response = await client.GetAsync($"/Employee/search/John");
+
+            response.EnsureSuccessStatusCode();
+            Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType.ToString());
+        }
+
+
+        [Fact]
         public async Task Post_WithValidValue_ReturnsOk()
         {
             var client = _factory.CreateClient();
