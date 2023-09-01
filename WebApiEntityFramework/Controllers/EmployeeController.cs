@@ -143,7 +143,7 @@ namespace WebApiEntityFramework.Controllers
                 return NotFound();
             }
 
-            _employeeRepository.DeleteAsync(employeeToDelete);
+            await _employeeRepository.DeleteAsync(employeeToDelete);
 
             return NoContent();
         }
